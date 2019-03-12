@@ -19,12 +19,35 @@ classdef YamlTools < handle
             entries = strings(num_structs, 1);
             for s = 1:num_structs
                 value = struct(s).value;
-                if isnumeric(value)
-                    value = num2str(value);
-                end
-                entries(s) = strjoin([struct(s).name, ": ", value], ''); 
+                formattedValue = fieldValue2formattedText(value);
+                entries(s) = strjoin([struct(s).name, ": ", formattedValue], ''); 
             end
             yamlText = strjoin(["%YAML:1.0"; entries], newline);
+        end
+        
+        function formattedText = fieldValue2formattedText(value)
+            if isstring(value)
+                formattedText = value;
+                return
+            end
+            
+            if ischar(value)
+                formattedText = string(value);
+                return
+            end
+            
+            if isnumeric(value)
+                if length(value) == 1
+                    formattedText = string(num2str(value));
+                else
+                    formattedText = YamlTools.vectorToString(value);
+                end
+            end
+            
+        end
+        
+        function str = vectorToString(vector)
+            str = strjoin("[ ", string(vector), " ]", ', ');
         end
         
         function [T, status] = yamlDictionaryArrayToTable(yaml_dictionary_array_text, field_names, field_types)
@@ -66,7 +89,7 @@ classdef YamlTools < handle
             
             field_types_provided = nargin > 2;
             if field_types_provided
-                T = GazePointManager.castTableTypes(T, field_types);
+                T = YamlTools.castTableTypes(T, field_types);
             end 
             
             status = 'OK';
