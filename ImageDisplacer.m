@@ -57,7 +57,7 @@ classdef ImageDisplacer < handle
             meta_info.displacement_value = result.displacement_value;
             meta_info.output_video_file_name = output_video_file_name;
             
-            meta_text = YamlTools.struct2yamlText(meta_info);
+            meta_text = YamlTools.structToYamlText(meta_info);
             file_id = fopen(meta_file, 'w');
             fwrite(file_id, meta_text);
             fclose(file_id);
@@ -71,7 +71,7 @@ classdef ImageDisplacer < handle
             result.displacement_time = displacement_time;
             result.displacement_value = displacement_value;
                         
-%             ImageDisplacer.imageToDisplacedVideo(img, output_video_file_name, frame_width_pixels, displacement_time, displacement_value);    
+            ImageDisplacer.imageToDisplacedVideo(img, output_video_file_name, frame_width_pixels, displacement_time, displacement_value);    
         end
         
         function imageToDisplacedVideo(img, output_video_file_name, frame_width_pixels, displacement_time, displacement_value)

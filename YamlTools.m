@@ -2,8 +2,8 @@ classdef YamlTools < handle
     
     methods(Static)
         function structure = yamlTextToStructure(yaml_text)
-            name_value_struct = yamlText2NameValueStructure(yaml_text);
-            structure = nameValueStructureToStructure(name_value_struct);
+            name_value_struct = YamlTools.yamlText2NameValueStructure(yaml_text);
+            structure = YamlTools.nameValueStructureToStructure(name_value_struct);
         end
         
         function yamlStruct = yamlText2NameValueStructure(yaml_text)           
@@ -28,9 +28,9 @@ classdef YamlTools < handle
             end
         end
         
-        function yamlText = struct2yamlText(struct)
-            name_value_structure = structureToNameValueStructure(struct);
-            yamlText = nameValueStructureToYamlText(name_value_structure);
+        function yamlText = structToYamlText(struct)
+            name_value_structure = YamlTools.structureToNameValueStructure(struct);
+            yamlText = YamlTools.nameValueStructureToYamlText(name_value_structure);
         end
         
         function name_value_structure = structureToNameValueStructure(structure)
@@ -39,7 +39,7 @@ classdef YamlTools < handle
             name_value_structure = repmat(struct('name', [], 'value', []), num_fields, 1);
             for f = 1:num_fields
                 name_value_structure(f).name = struct_fields(f);
-                name_value_structure(f).value = structure(struct_fields(f));
+                name_value_structure(f).value = structure.(struct_fields(f));
             end
         end
         
@@ -48,13 +48,13 @@ classdef YamlTools < handle
             entries = strings(num_structs, 1);
             for s = 1:num_structs
                 value = struct(s).value;
-                formattedValue = fieldValue2formattedText(value);
+                formattedValue = YamlTools.fieldValueToFormattedText(value);
                 entries(s) = strjoin([struct(s).name, ": ", formattedValue], ''); 
             end
             yamlText = strjoin(["%YAML:1.0"; entries], newline);
         end
         
-        function formattedText = fieldValue2formattedText(value)
+        function formattedText = fieldValueToFormattedText(value)
             if isstring(value)
                 formattedText = value;
                 return
@@ -76,7 +76,7 @@ classdef YamlTools < handle
         end
         
         function str = vectorToString(vector)
-            str = strjoin("[ ", string(vector), " ]", ', ');
+            str = ["[ ", strjoin(string(vector), ', '), " ]"];
         end
         
         function [T, status] = yamlDictionaryArrayToTable(yaml_dictionary_array_text, field_names, field_types)
