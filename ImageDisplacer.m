@@ -32,21 +32,38 @@ classdef ImageDisplacer < handle
                 obj.gzm.openUser(user_list(u));
                 media_table = obj.gzm.user_media_table;
                 
+                % Select the right media file information
+                project_media_table = obj.gzm.project_media_table;
+                ind = strcmp(meta_info.output_video_file_name, project_media_table.Path);
+                if ~any(ind)
+                    return
+                end
+                
+                media_id = project_media_table.Id(ind);
+                media_info = media_table(media_id, :);
+                
+                frame_position_in_screen = [media_info.X, media_info.Y; media_info.X + media_info.WIDTH, media_info.X + media_info.HEIGHT];
+                frame_width_in_image = meta_info.frame_width_pixels;
+%                 image_position_in_screen = ?
+                
+                
                 new_data = ImageDisplacer.correctCoordinates(time_vector, x_displacement_time, x_displacement_value, normalized_x_coord_in_screen, normalized_y_coord_in_screen, frame_position_in_screen, frame_width_in_image, full_image_size, image_position_in_screen);
                 gzm.closeUser();
             end
             
         end
         
+        
+    end
+    
+    methods(Static)
         function [final_normalized_x_coord_in_screen, final_normalized_y_coord_in_screen] = correctCoordinates(time_vector, x_displacement_time, x_displacement_value, normalized_x_coord_in_screen, normalized_y_coord_in_screen, frame_position_in_screen, frame_width_in_image, full_image_size, image_position_in_screen)
             [normalized_x_coord_in_frame, normalized_y_coord_in_frame] = ImageDisplacer.map2DcoordinatesToAnotherReference([0, 0], [1, 1], frame_position_in_screen(1, :), frame_position_in_screen(2, :), normalized_x_coord_in_screen, normalized_y_coord_in_screen);
             x_displacement = interp1(x_displacement_time, x_displacement_value, time_vector);
             [normalized_x_coord_in_image, normalized_y_coord_in_image] = ImageDisplacer.map2DcoordinatesToAnotherReference([x_displacement, zeros(length(x_displacement), 1)], [frame_width_in_image + x_displacement, full_image_size(2)*ones(length(x_displacement), 1)], [0, 0], full_image_size, normalized_x_coord_in_frame, normalized_y_coord_in_frame);
             [final_normalized_x_coord_in_screen, final_normalized_y_coord_in_screen] = ImageDisplacer.map2DcoordinatesToAnotherReference(image_position_in_screen(1,:), image_position_in_screen(2,:), [0, 0], [1, 1], normalized_x_coord_in_image, normalized_y_coord_in_image);
         end
-    end
-    
-    methods(Static)
+        
         function displaceImage(image_file_name, output_video_file_name, meta_file, frame_width_pixels, velocity_pixels_per_second)
             result = ImageDisplacer.imageFileToDisplacedVideo(image_file_name, output_video_file_name, frame_width_pixels, 'displacement_velocity', velocity_pixels_per_second);
 
@@ -114,7 +131,7 @@ classdef ImageDisplacer < handle
         function [structure, status] = getMetaInfo(meta_file)
             try
                 meta_file_text = fileread(meta_file);
-                structure = YamlTools.yamlText2Structure(meta_file_text);
+                structure = YamlTools.yamlTextToStructure(meta_file_text);
                 status = 'OK';
             catch m
                 structure = [];
