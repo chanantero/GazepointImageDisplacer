@@ -175,7 +175,7 @@ classdef GazePointManager < handle
         function openProject(obj, project_file_name)
             obj.open_project = project_file_name;
             project_file_text = fileread(project_file_name);
-            structure = YamlTools.yamlText2Structure(project_file_text);
+            structure = YamlTools.yamlTextToStructure(project_file_text);
             obj.project_struct = structure;
             
             media_value = obj.getProjectField('Media', false);
@@ -255,7 +255,7 @@ classdef GazePointManager < handle
             gunzip(user_measure_data_file_name);
             
             user_measure_data_file_text = fileread(user_measure_data_file_name_unzipped);
-            obj.user_struct = YamlTools.yamlText2Structure(user_measure_data_file_text);
+            obj.user_struct = YamlTools.yamlTextToStructure(user_measure_data_file_text);
             
             data_value = obj.getUserField('Data', false);
             obj.user_data_table = YamlTools.yamlDictionaryArrayToTable(data_value, GazePointManager.user_data_field_names, GazePointManager.user_data_field_types);
@@ -342,13 +342,11 @@ classdef GazePointManager < handle
     
     methods(Static, Access=private)       
         function value = getStructureField(structure, field)
-            field_ind = strcmp(field, {structure.name});
-            value = structure(field_ind).value;
+            value = structure.(field);
         end
         
         function structure = setStructureField(structure, field, value)
-            ind = strcmp(field, {structure.name});
-            structure(ind).value = value;
+            structure.(field) = value;
         end
     end
     

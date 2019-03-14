@@ -1,7 +1,12 @@
 classdef YamlTools < handle
     
     methods(Static)
-        function yamlStruct = yamlText2Structure(yaml_text)           
+        function structure = yamlTextToStructure(yaml_text)
+            name_value_struct = yamlText2NameValueStructure(yaml_text);
+            structure = nameValueStructureToStructure(name_value_struct);
+        end
+        
+        function yamlStruct = yamlText2NameValueStructure(yaml_text)           
             lines = strsplit(yaml_text, '\n');
             names = regexp(lines, '^(?<preSpace>\s*)(?<name>\w+):(?:\s?)(?<value>.*)', 'names');
             isMainField = cellfun(@(x) ~isempty(x) && isempty(x.preSpace), names);
@@ -12,9 +17,33 @@ classdef YamlTools < handle
             for i = indMoreLines
                 yamlStruct(i).value = strjoin([{yamlStruct(i).value}, lines(indMainField(i)+1:indMainField(i+1)-1)], '\n');
             end
+            
+        end
+        
+        function structure = nameValueStructureToStructure(name_value_structure)
+            structure = struct();
+            num_structs = length(name_value_structure);
+            for s = 1:num_structs
+                structure.(name_value_structure(s).name) = name_value_structure(s).value;
+            end
         end
         
         function yamlText = struct2yamlText(struct)
+            name_value_structure = structureToNameValueStructure(struct);
+            yamlText = nameValueStructureToYamlText(name_value_structure);
+        end
+        
+        function name_value_structure = structureToNameValueStructure(structure)
+            struct_fields = string(fields(structure));
+            num_fields = length(struct_fields);
+            name_value_structure = repmat(struct('name', [], 'value', []), num_fields, 1);
+            for f = 1:num_fields
+                name_value_structure(f).name = struct_fields(f);
+                name_value_structure(f).value = structure(struct_fields(f));
+            end
+        end
+        
+        function yamlText = nameValueStructureToYamlText(struct)
             num_structs = length(struct);
             entries = strings(num_structs, 1);
             for s = 1:num_structs
