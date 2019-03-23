@@ -41,7 +41,7 @@ classdef GazePointManager < handle
             "RPS"
             "RPV"];                      
         user_data_field_types = [
-            "string";
+            "int32";
             "int32";
             "double";
             "int64";
@@ -61,8 +61,8 @@ classdef GazePointManager < handle
             "int32";
             "int32";
             "int32";
-            "string";
-            "string";
+            "single";
+            "single";
             "string";
             "string";
             "string";
@@ -94,7 +94,7 @@ classdef GazePointManager < handle
             "END_INDEX";
             "AUDIO_START"];
         user_media_field_types = ...
-            ["string";
+            ["int32";
             "double";
             "double";
             "double";
@@ -166,6 +166,37 @@ classdef GazePointManager < handle
         user_media_modified
     end
     
+    % Getters and setters
+    methods
+        function bool = get.is_project_open(obj)
+            bool = ~isempty(obj.open_project);
+        end
+        
+        function set.project_media_table(obj, value)
+            obj.project_media_table = value;
+            obj.project_media_modified = true;
+        end
+        
+        function set.project_user_data_table(obj, value)
+            obj.project_user_data_table = value;
+            obj.project_user_data_modified = true;
+        end
+        
+        function bool = get.is_user_open(obj)
+            bool = ~isempty(obj.open_user);
+        end
+        
+        function set.user_data_table(obj, value)
+            obj.user_data_table = value;
+            obj.user_data_modified = true;
+        end
+        
+        function set.user_media_table(obj, value)
+            obj.user_media_table = value;
+            obj.user_media_modified = true;
+        end
+    end
+    
     methods
         
         function obj = GazePointManager()
@@ -195,7 +226,7 @@ classdef GazePointManager < handle
             if obj.project_user_data_modified
                 obj.setProjectField('UserData', obj.project_user_data_table);
             end
-            yamlText = YamlTools.struct2yamlText(obj.project_struct);
+            yamlText = YamlTools.structToYamlText(obj.project_struct);
             
             fileId = fopen(obj.open_project, 'w');
             fwrite(fileId, char(yamlText));
@@ -210,11 +241,7 @@ classdef GazePointManager < handle
                 obj.closeUser();
             end
         end
-        
-        function bool = get.is_project_open(obj)
-            bool = ~isempty(obj.open_project);
-        end
-                
+                        
         function value = getProjectField(obj, field, convert_to_table)
             if nargin < 3
                 convert_to_table = true;
@@ -234,15 +261,13 @@ classdef GazePointManager < handle
             end
             obj.project_struct = GazePointManager.setStructureField(obj.project_struct, field, value);
         end
-        
-        function set.project_media_table(obj, value)
-            obj.project_media_table = value;
-            obj.project_media_modified = true;
+                
+        function project_media_entry = getProjectMediaEntry(obj, media_file_name)
+             project_media_entry = obj.project_media_table(obj.project_media_table.Path == media_file_name, :);
         end
         
-        function set.project_user_data_table(obj, value)
-            obj.project_user_data_table = value;
-            obj.project_user_data_modified = true;
+        function setProjectMediaEntry(obj, media_file_name, project_media_entry)
+            obj.project_media_table(obj.project_media_table.Path == media_file_name, :) = project_media_entry;
         end
         
         function user_list = getUserList(obj)
@@ -277,7 +302,7 @@ classdef GazePointManager < handle
                 obj.setUserField('Media', obj.user_media_table);
             end
             
-            yamlText = YamlTools.struct2yamlText(obj.user_struct);
+            yamlText = YamlTools.structToYamlText(obj.user_struct);
             
             user_measure_data_file_name_unzipped = obj.getUserFileName(obj.open_user);
             fileId = fopen(user_measure_data_file_name_unzipped, 'w');
@@ -289,11 +314,7 @@ classdef GazePointManager < handle
             obj.user_data_table = [];
             obj.open_user = [];
         end
-        
-        function bool = get.is_user_open(obj)
-            bool = ~isempty(obj.open_user);
-        end
-        
+                
         function value = getUserField(obj, field, convert_to_table)
             if nargin < 3
                 convert_to_table = true;
@@ -313,17 +334,49 @@ classdef GazePointManager < handle
             end
             obj.user_struct = GazePointManager.setStructureField(obj.user_struct, field, value);
         end
-        
-        function set.user_data_table(obj, value)
-            obj.user_data_table = value;
-            obj.user_data_modified = true;
+                       
+        function media_id = getMediaFileId(obj, media_file_name)
+            ind = strcmp(media_file_name, obj.project_media_table.Path);
+            media_id = obj.project_media_table.Id(ind);
         end
         
-        function set.user_media_table(obj, value)
-            obj.user_media_table = value;
-            obj.user_media_modified = true;
+        function media_file_entry = getUserMediaEntry(obj, media_file_name)
+            media_id = obj.getMediaFileId(media_file_name);
+            media_file_entry = obj.user_media_table(obj.user_media_table.ID == media_id, :);
         end
-               
+        
+        function setUserMediaEntry(obj, media_file_name, user_media_entry)
+            media_id = obj.getMediaFileId(media_file_name);
+            obj.user_media_table(obj.user_media_table.ID == media_id, :) = user_media_entry;
+        end
+        
+        function setUserMediaEntryPosition(obj, media_file_name, normalized_position_in_screen)
+            user_media_entry = obj.getUserMediaEntry(media_file_name);
+            
+            screen_width = str2double(obj.getUserField('Width'));
+            screen_height = str2double(obj.getUserField('Height'));
+            user_media_entry.X = normalized_position_in_screen(1, 1);
+            user_media_entry.Y = normalized_position_in_screen(1, 2);
+            user_media_entry.WIDTH = normalized_position_in_screen(2, 1) - user_media_entry.X;
+            user_media_entry.HEIGHT = normalized_position_in_screen(2, 2) - user_media_entry.Y;
+            user_media_entry.XPIX = int32(user_media_entry.X*screen_width);
+            user_media_entry.YPIX = int32(user_media_entry.Y*screen_height);
+            user_media_entry.WIDTHPIX = int32(user_media_entry.WIDTH*screen_width);
+            user_media_entry.HEIGHTPIX = int32(user_media_entry.HEIGHT*screen_height);
+            
+            obj.setUserMediaEntry(media_file_name, user_media_entry);
+        end
+        
+        function user_data = getUserDataForMediaFile(obj, media_file_name, field_names)
+            media_id = obj.getMediaFileId(media_file_name);
+            user_data = obj.user_data_table{obj.user_data_table.MID == media_id, cellstr(field_names)};
+        end
+        
+        function setUserDataForMediaFile(obj, media_file_name, field_names, user_data)
+            media_id = obj.getMediaFileId(media_file_name);
+            obj.user_data_table{obj.user_data_table.MID == media_id, cellstr(field_names)} = user_data;
+        end
+        
     end
     
     methods(Access=private)

@@ -78,7 +78,7 @@ classdef YamlTools < handle
         function str = vectorToString(vector)
             str = ["[ ", strjoin(string(vector), ', '), " ]"];
         end
-        
+                
         function [T, status] = yamlDictionaryArrayToTable(yaml_dictionary_array_text, field_names, field_types)
             % Assume the set of actual field names of every dictionary array are
             % the same, there are no repetitions among a given dictionary,
@@ -150,10 +150,16 @@ classdef YamlTools < handle
             num_fields = length(field_types);
             for t = 1:num_fields
                 var_type = field_types(t);
-                is_number_or_boolean = ismember(var_type, ["int32", "int64", "single", "double", "logical"]);
-                if is_number_or_boolean
-                    T.(t) = cast(double(T{:, t}), char(var_type));
-                end
+                T.(t) = YamlTools.castTypes(T{:, t}, var_type);
+            end
+        end
+        
+        function result = castTypes(values, type)
+            is_number_or_boolean = ismember(type, ["int32", "int64", "single", "double", "logical"]);
+            if is_number_or_boolean
+                result = cast(double(values), char(type));
+            else
+                result = values;
             end
         end
     end
