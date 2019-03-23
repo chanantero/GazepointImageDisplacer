@@ -6,5 +6,5 @@ imDisp = ImageDisplacer();
 imDisp.adaptProject(meta_file, project_file_name);
 
 % ImageDisplacer.displaceImage('imageTest.jpg', 'asdf.avi', meta_file, 100, 100);
-
+ImageDisplacer.duplicateProject(project_file_name);
 

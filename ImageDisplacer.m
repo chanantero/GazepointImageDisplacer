@@ -11,10 +11,11 @@ classdef ImageDisplacer < handle
     methods
         function obj = ImageDisplacer()
             obj.gzm = GazePointManager();
-            
         end
         
         function adaptProject(obj, meta_file, project_file_name)
+            ImageDisplacer.duplicateProject(project_file_name);
+            
             [meta_info, status] = ImageDisplacer.getMetaInfo(meta_file);
             
             assert(~strcmp(status, 'ERROR'), 'ImageDisplacer:adaptProject', 'Could not extract information from meta information file')
@@ -57,11 +58,19 @@ classdef ImageDisplacer < handle
             obj.gzm.setProjectMediaEntry(meta_info.output_video_file_name, project_media_entry);
             
             obj.gzm.closeProject();
-        end       
-        
+        end
     end
     
     methods(Static)
+        function duplicateProject(project_name)
+            [project_path, ~, ~] = fileparts(project_name);
+            separate_path = regexp(char(project_path), '\\|/', 'split');
+            folder_name = separate_path{end};
+            parent_folder = strjoin(separate_path(1:end-1));
+            copy_project_path = [parent_folder, '\', folder_name, '_old'];
+            copyfile(project_path, copy_project_path);
+        end
+        
         function fitted_position = fitRectangleIntoAnother(reference_rectangle_position, rectangle_to_fit_position)
             reference_x0 = reference_rectangle_position(1, 1);
             reference_x1 = reference_rectangle_position(2, 1);
