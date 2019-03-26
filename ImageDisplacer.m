@@ -151,20 +151,37 @@ classdef ImageDisplacer < handle
             [displacement_time, displacement_value] = ImageDisplacer.createDisplacementProfile(width, varargin{:});
             result.displacement_time = displacement_time;
             result.displacement_value = displacement_value;
-                                    
+                        
+            if frame_width_pixels < 100
+                error('ImageDisplacer:FrameTooThin', 'The minimum frame width is 100 pixels');
+            end
+            
+            if frame_width_pixels > width
+                error('ImageDisplacer:FrameTooThick', 'The maximum frame width is the width of the image');
+            end
+            
+            if max(displacement_time) < 1
+                error('ImageDisplacer:tooFastDisplacement', 'The minimum duration of the video is 1 second')
+            end
+            
+            if max(displacement_time) > 100
+                error('ImageDisplacer:tooSlowDisplacement', 'The maximum duration of the video is 100 seconds')
+            end
+                           
             ImageDisplacer.displaceImageAsVideo(img, output_video_file_name, frame_width_pixels, displacement_time, displacement_value);    
         end
         
         function displaceImageAsVideo(img, output_video_file_name, frame_width_pixels, displacement_time, displacement_value)
+            [~, width, ~] = size(img);
             displacement_time = displacement_time - displacement_time(1);
             duration = displacement_time(end);         
-            numFrames = floor(duration*obj.FRAME_RATE);
-            time_vector = (0:numFrames-1)/obj.FRAME_RATE;
+            numFrames = floor(duration*ImageDisplacer.FRAME_RATE);
+            time_vector = (0:numFrames-1)/ImageDisplacer.FRAME_RATE;
             displacement = interp1(displacement_time, displacement_value, time_vector, 'linear', 'extrap');
             v = VideoWriter(output_video_file_name, 'Motion JPEG AVI');
-            v.FrameRate = obj.FRAME_RATE;
+            v.FrameRate = ImageDisplacer.FRAME_RATE;
             open(v);
-            for f = 0:numFrames - 1
+            for f = 1:numFrames
                 first_pixel = floor(displacement(f));
                 last_pixel = first_pixel + frame_width_pixels - 1;
                 pixel_indices = mod((first_pixel:last_pixel) - 1, width) + 1;
