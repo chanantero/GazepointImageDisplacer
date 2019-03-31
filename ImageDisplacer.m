@@ -15,53 +15,65 @@ classdef ImageDisplacer < handle
         
         function adaptProject(obj, meta_file, project_file_name)
             ImageDisplacer.duplicateProject(project_file_name);
-            
+                       
             [meta_info, status] = ImageDisplacer.getMetaInfo(meta_file);
-            
             assert(~strcmp(status, 'ERROR'), 'ImageDisplacer:adaptProject', 'Could not extract information from meta information file')
-           
-            x_displacement_time = str2num(meta_info.displacement_time);
-            x_displacement_value = str2num(meta_info.displacement_value);
-            full_image_size = str2num(meta_info.image_size);
-            image_position_in_screen = ImageDisplacer.fitRectangleIntoAnother([0 0; 1 1], [0 0; full_image_size]);
+
+            ImageDisplacer.substituteVideoForImage(project_file_name, meta_info);
             
             obj.gzm.openProject(project_file_name);
-            user_list = obj.gzm.getUserList();
-            num_users = length(user_list);
-            x_coord_field_names = ["FPOGX", "BPOGX", "CX", "SCLX", "LPCX", "RPCX"];
-            y_coord_field_names = ["FPOGY", "BPOGY", "CY", "SCLY", "LPCY", "RPCY"];
-            for u = 1:num_users
-                obj.gzm.openUser(user_list(u));
-                               
-                media_info = obj.gzm.getUserMediaEntry(meta_info.output_video_file_name);
-                frame_position_in_screen = [media_info.X, media_info.Y; media_info.X + media_info.WIDTH, media_info.Y + media_info.HEIGHT];
-                frame_width_in_image = str2double(meta_info.frame_width_pixels);
-                               
-                normalized_x_coord_in_screen = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, x_coord_field_names);
-                normalized_y_coord_in_screen = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, y_coord_field_names);
-                time_vector = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, "TIME");
-                                 
-                [final_normalized_x_coord_in_screen, final_normalized_y_coord_in_screen] = ImageDisplacer.correctCoordinates(time_vector,...
-                    x_displacement_time, x_displacement_value,...
-                    normalized_x_coord_in_screen, normalized_y_coord_in_screen,...
-                    frame_position_in_screen, frame_width_in_image,...
-                    full_image_size, image_position_in_screen);
-                
-                obj.gzm.setUserDataForMediaFile(meta_info.output_video_file_name, x_coord_field_names, final_normalized_x_coord_in_screen);
-                obj.gzm.setUserDataForMediaFile(meta_info.output_video_file_name, y_coord_field_names, final_normalized_y_coord_in_screen);
-                obj.gzm.setUserMediaEntryPosition(meta_info.output_video_file_name, image_position_in_screen);
-                
-                obj.gzm.closeUser();
-            end
+            
+            obj.adaptUsers(meta_info);
+                        
             project_media_entry = obj.gzm.getProjectMediaEntry(meta_info.output_video_file_name);
-            project_media_entry.Path = meta_info.image_file_name;
+            project_media_entry.Path = fileName(meta_info.image_file_name);            
             obj.gzm.setProjectMediaEntry(meta_info.output_video_file_name, project_media_entry);
             
             obj.gzm.closeProject();
         end
+        
+        function adaptUsers(obj, meta_info)            
+            user_list = obj.gzm.getUserList();
+            for user_name = user_list
+                obj.adaptUser(user_name, meta_info);
+            end
+        end
+        
+        function adaptUser(obj, user_name, meta_info)
+            obj.gzm.openUser(user_name);        
+            
+            media_info = obj.gzm.getUserMediaEntry(meta_info.output_video_file_name);
+            frame_position_in_screen = [media_info.X, media_info.Y; media_info.X + media_info.WIDTH, media_info.Y + media_info.HEIGHT];
+            
+            screen_width = str2double(obj.gzm.getUserField('Width'));
+            screen_height = str2double(obj.gzm.getUserField('Height'));
+            image_position_in_screen_pixels = ImageDisplacer.fitRectangleIntoAnother([0 0; screen_height, screen_width], [0 0; meta_info.image_size]);
+            image_position_in_screen = image_position_in_screen_pixels./[screen_height, screen_width];
+            
+            normalized_x_coord_in_screen = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, GazePointManager.user_data_x_coord_field_names);
+            normalized_y_coord_in_screen = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, GazePointManager.user_data_y_coord_field_names);
+            time_vector = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, "TIME");
+            
+            [final_normalized_x_coord_in_screen, final_normalized_y_coord_in_screen] = ImageDisplacer.correctCoordinates(time_vector,...
+                meta_info.displacement_time, meta_info.displacement_value,...
+                normalized_x_coord_in_screen, normalized_y_coord_in_screen,...
+                frame_position_in_screen, meta_info.frame_width_pixels,...
+                meta_info.image_size, image_position_in_screen);
+            
+            obj.gzm.setUserDataForMediaFile(meta_info.output_video_file_name, x_coord_field_names, final_normalized_x_coord_in_screen);
+            obj.gzm.setUserDataForMediaFile(meta_info.output_video_file_name, y_coord_field_names, final_normalized_y_coord_in_screen);
+            
+            obj.setUserMediaEntryPosition(meta_info, image_position_in_screen);
+            
+            obj.gzm.closeUser();
+        end
+        
+        function setUserMediaEntryPosition(obj, meta_info, image_position_in_screen)
+            obj.gzm.setUserMediaEntryPosition(meta_info.output_video_file_name, image_position_in_screen);
+        end
     end
     
-    methods(Static)
+    methods(Static)   
         function duplicateProject(project_name)
             [project_path, ~, ~] = fileparts(project_name);
             separate_path = regexp(char(project_path), '\\|/', 'split');
@@ -69,6 +81,16 @@ classdef ImageDisplacer < handle
             parent_folder = strjoin(separate_path(1:end-1));
             copy_project_path = [parent_folder, '\', folder_name, '_old'];
             copyfile(project_path, copy_project_path);
+        end
+        
+        function substituteVideoForImage(project_file_name, meta_info)
+            [project_path, ~, ~] = fileparts(project_file_name);
+            copyfile(meta_info.image_file_name, [project_path, filesep, src]);
+        end
+        
+        function name = fileName(complete_file_path)
+            [~, name, ext] = fileparts(complete_file_path);
+            name = [name, ext];
         end
         
         function fitted_position = fitRectangleIntoAnother(reference_rectangle_position, rectangle_to_fit_position)
@@ -215,6 +237,12 @@ classdef ImageDisplacer < handle
             try
                 meta_file_text = fileread(meta_file);
                 structure = YamlTools.yamlTextToStructure(meta_file_text);
+                
+                structure.displacement_time = str2num(structure.displacement_time);
+                structure.displacement_value = str2num(structure.displacement_value);
+                structure.image_size = str2num(structure.image_size);
+                frame_width_pixels = str2double(structure.frame_width_pixels);
+                
                 status = 'OK';
             catch m
                 structure = [];

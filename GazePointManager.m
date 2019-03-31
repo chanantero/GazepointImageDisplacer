@@ -80,6 +80,9 @@ classdef GazePointManager < handle
             "single";
             "logical"];
         
+        user_data_x_coord_field_names = ["FPOGX", "BPOGX", "CX", "SCLX", "LPCX", "RPCX"];
+        user_data_y_coord_field_names = ["FPOGY", "BPOGY", "CY", "SCLY", "LPCY", "RPCY"];
+        
         user_media_field_names = ...
             ["ID";
             "X";
