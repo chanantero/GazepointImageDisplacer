@@ -13,7 +13,7 @@ classdef ImageDisplacer < handle
             obj.gzm = GazePointManager();
         end
         
-        function adaptProject(obj, meta_file, project_file_name)
+        function adaptProject(obj, project_file_name, meta_file)
             ImageDisplacer.duplicateProject(project_file_name);
                        
             [meta_info, status] = ImageDisplacer.getMetaInfo(meta_file);
@@ -25,16 +25,19 @@ classdef ImageDisplacer < handle
             
             obj.adaptUsers(meta_info);
                         
-            project_media_entry = obj.gzm.getProjectMediaEntry(meta_info.output_video_file_name);
-            project_media_entry.Path = fileName(meta_info.image_file_name);            
-            obj.gzm.setProjectMediaEntry(meta_info.output_video_file_name, project_media_entry);
+            output_video_name = ImageDisplacer.quote(ImageDisplacer.fileName(meta_info.output_video_file_name));
+            project_media_entry = obj.gzm.getProjectMediaEntry(output_video_name);
+            project_media_entry.Path = ImageDisplacer.fileName(meta_info.image_file_name);            
+            obj.gzm.setProjectMediaEntry(output_video_name, project_media_entry);
             
             obj.gzm.closeProject();
         end
         
         function adaptUsers(obj, meta_info)            
-            user_list = obj.gzm.getUserList();
-            for user_name = user_list
+            user_list = obj.gzm.getUserList()';
+            num_users = length(user_list);
+            for u = 1:num_users
+                user_name = user_list(u);
                 obj.adaptUser(user_name, meta_info);
             end
         end
@@ -42,7 +45,9 @@ classdef ImageDisplacer < handle
         function adaptUser(obj, user_name, meta_info)
             obj.gzm.openUser(user_name);        
             
-            media_info = obj.gzm.getUserMediaEntry(meta_info.output_video_file_name);
+            output_video_file_name = ImageDisplacer.quote(ImageDisplacer.fileName(meta_info.output_video_file_name));
+            
+            media_info = obj.gzm.getUserMediaEntry(output_video_file_name);
             frame_position_in_screen = [media_info.X, media_info.Y; media_info.X + media_info.WIDTH, media_info.Y + media_info.HEIGHT];
             
             screen_width = str2double(obj.gzm.getUserField('Width'));
@@ -50,9 +55,9 @@ classdef ImageDisplacer < handle
             image_position_in_screen_pixels = ImageDisplacer.fitRectangleIntoAnother([0 0; screen_height, screen_width], [0 0; meta_info.image_size]);
             image_position_in_screen = image_position_in_screen_pixels./[screen_height, screen_width];
             
-            normalized_x_coord_in_screen = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, GazePointManager.user_data_x_coord_field_names);
-            normalized_y_coord_in_screen = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, GazePointManager.user_data_y_coord_field_names);
-            time_vector = obj.gzm.getUserDataForMediaFile(meta_info.output_video_file_name, "TIME");
+            normalized_x_coord_in_screen = obj.gzm.getUserDataForMediaFile(output_video_file_name, GazePointManager.user_data_x_coord_field_names);
+            normalized_y_coord_in_screen = obj.gzm.getUserDataForMediaFile(output_video_file_name, GazePointManager.user_data_y_coord_field_names);
+            time_vector = obj.gzm.getUserDataForMediaFile(output_video_file_name, "TIME");
             
             [final_normalized_x_coord_in_screen, final_normalized_y_coord_in_screen] = ImageDisplacer.correctCoordinates(time_vector,...
                 meta_info.displacement_time, meta_info.displacement_value,...
@@ -60,8 +65,8 @@ classdef ImageDisplacer < handle
                 frame_position_in_screen, meta_info.frame_width_pixels,...
                 meta_info.image_size, image_position_in_screen);
             
-            obj.gzm.setUserDataForMediaFile(meta_info.output_video_file_name, x_coord_field_names, final_normalized_x_coord_in_screen);
-            obj.gzm.setUserDataForMediaFile(meta_info.output_video_file_name, y_coord_field_names, final_normalized_y_coord_in_screen);
+            obj.gzm.setUserDataForMediaFile(output_video_file_name, obj.gzm.user_data_x_coord_field_names, final_normalized_x_coord_in_screen);
+            obj.gzm.setUserDataForMediaFile(output_video_file_name, obj.gzm.user_data_y_coord_field_names, final_normalized_y_coord_in_screen);
             
             obj.setUserMediaEntryPosition(meta_info, image_position_in_screen);
             
@@ -69,7 +74,8 @@ classdef ImageDisplacer < handle
         end
         
         function setUserMediaEntryPosition(obj, meta_info, image_position_in_screen)
-            obj.gzm.setUserMediaEntryPosition(meta_info.output_video_file_name, image_position_in_screen);
+            output_video_name = ImageDisplacer.quote(ImageDisplacer.fileName(meta_info.output_video_file_name));
+            obj.gzm.setUserMediaEntryPosition(output_video_name, image_position_in_screen);
         end
     end
     
@@ -78,19 +84,29 @@ classdef ImageDisplacer < handle
             [project_path, ~, ~] = fileparts(project_name);
             separate_path = regexp(char(project_path), '\\|/', 'split');
             folder_name = separate_path{end};
-            parent_folder = strjoin(separate_path(1:end-1));
+            parent_folder = strjoin(separate_path(1:end-1), filesep);
             copy_project_path = [parent_folder, '\', folder_name, '_old'];
             copyfile(project_path, copy_project_path);
         end
         
         function substituteVideoForImage(project_file_name, meta_info)
             [project_path, ~, ~] = fileparts(project_file_name);
-            copyfile(meta_info.image_file_name, [project_path, filesep, src]);
+            image_name = ImageDisplacer.fileName(meta_info.image_file_name);
+            destination_file = strcat(project_path, filesep, 'src', filesep, image_name);
+            copyfile(meta_info.image_file_name, destination_file);
+        end
+        
+        function unquotted = unquote(str)
+            unquotted = string(regexp(str, '"(.*)"', 'tokens'));
+        end
+        
+        function quotted = quote(str)
+            quotted = strcat('"', str, '"');
         end
         
         function name = fileName(complete_file_path)
             [~, name, ext] = fileparts(complete_file_path);
-            name = [name, ext];
+            name = strjoin([name, ext], '');
         end
         
         function fitted_position = fitRectangleIntoAnother(reference_rectangle_position, rectangle_to_fit_position)
@@ -241,7 +257,9 @@ classdef ImageDisplacer < handle
                 structure.displacement_time = str2num(structure.displacement_time);
                 structure.displacement_value = str2num(structure.displacement_value);
                 structure.image_size = str2num(structure.image_size);
-                frame_width_pixels = str2double(structure.frame_width_pixels);
+                structure.frame_width_pixels = str2double(structure.frame_width_pixels);
+                structure.image_file_name = string(ImageDisplacer.unquote(structure.image_file_name));
+                structure.output_video_file_name = string(ImageDisplacer.unquote(structure.output_video_file_name));
                 
                 status = 'OK';
             catch m
