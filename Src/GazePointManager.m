@@ -279,7 +279,7 @@ classdef GazePointManager < handle
         
         function openUser(obj, user_name)
             user_measure_data_file_name_unzipped = obj.getUserFileName(user_name);
-            user_measure_data_file_name = [user_measure_data_file_name_unzipped, '.gz'];
+            user_measure_data_file_name = strcat(user_measure_data_file_name_unzipped, '.gz');
             gunzip(user_measure_data_file_name);
             
             user_measure_data_file_text = fileread(user_measure_data_file_name_unzipped);
@@ -378,8 +378,7 @@ classdef GazePointManager < handle
         function setUserDataForMediaFile(obj, media_file_name, field_names, user_data)
             media_id = obj.getMediaFileId(media_file_name);
             obj.user_data_table{obj.user_data_table.MID == media_id, cellstr(field_names)} = user_data;
-        end
-        
+        end        
     end
     
     methods(Access=private)
@@ -392,7 +391,7 @@ classdef GazePointManager < handle
             user_id = obj.project_user_data_table.Id(ind);
             
             [project_directory, name, ext] = fileparts(obj.open_project);
-            user_measure_data_file_name_unzipped = ([project_directory, '/user/', num2str(user_id, '%.4u'), '-user.yml']);
+            user_measure_data_file_name_unzipped = strcat(project_directory, filesep, 'user', filesep, num2str(user_id, '%.4u'), '-user.yml');
         end
     end
     
