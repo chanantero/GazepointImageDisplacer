@@ -160,7 +160,11 @@ classdef ImageDisplacer < handle
         end
         
         function displaceImage(image_file_name, output_video_file_name, meta_file, frame_width_pixels, velocity_pixels_per_second)
+            try
             img = imread(image_file_name);
+            catch e
+                error('ImageDisplacer:cannotOpenImage', 'Image could not be read');
+            end
             [height, width, ~] = size(img);
             
             displacement_information = ImageDisplacer.imageToDisplacedVideo(img, output_video_file_name, frame_width_pixels, 'displacement_velocity', velocity_pixels_per_second);
