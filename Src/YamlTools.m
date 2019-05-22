@@ -141,7 +141,7 @@ classdef YamlTools < handle
                     dict_elems(v) = string(sprintf('%s:%s', var_names{v}, value_str));
                 end
                 dict = strjoin(dict_elems, ', ');
-                dicts(e) = strjoin(["- { ", dict, " }"], '');
+                dicts(e) = strjoin(["   - { ", dict, " }"], '');
             end
             dictArrayString = strjoin([""; dicts], newline);
         end

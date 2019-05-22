@@ -1,3 +1,5 @@
 Gazepoint usa CODEC x264. Si no, la imagen se ve mal
 En la carpeta de usuario, no se puede sobrescribir archivos. Hay que ponerlo en C:
-Error: Matrix dimensions
+22/05/2018
+Consigo abrir Gazepoint, pero la imagen se ve verde. Revisar la información de usuario.
+Propuesta: conservar tanto el vídeo como la imagen para ver si el vídeo sí se sigue visualizando.

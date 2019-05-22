@@ -27,7 +27,7 @@ classdef ImageDisplacer < handle
                         
             output_video_name = ImageDisplacer.quote(ImageDisplacer.fileName(meta_info.output_video_file_name));
             project_media_entry = obj.gzm.getProjectMediaEntry(output_video_name);
-            project_media_entry.Path = strjoin(['"', ImageDisplacer.fileName(meta_info.image_file_name), '"'], '');            
+            project_media_entry.Path = ImageDisplacer.quote(ImageDisplacer.fileName(meta_info.image_file_name));            
             obj.gzm.setProjectMediaEntry(output_video_name, project_media_entry);
             
             obj.gzm.closeProject();
