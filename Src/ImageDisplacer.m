@@ -52,8 +52,8 @@ classdef ImageDisplacer < handle
             
             screen_width = str2double(obj.gzm.getUserField('Width'));
             screen_height = str2double(obj.gzm.getUserField('Height'));
-            image_position_in_screen_pixels = ImageDisplacer.fitRectangleIntoAnother([0 0; screen_height, screen_width], [0 0; meta_info.image_size]);
-            image_position_in_screen = image_position_in_screen_pixels./[screen_height, screen_width];
+            image_position_in_screen_pixels = ImageDisplacer.fitRectangleIntoAnother([0 0; screen_width, screen_height], [0 0; flip(meta_info.image_size)]);
+            image_position_in_screen = image_position_in_screen_pixels./[screen_width, screen_height];
             
             normalized_x_coord_in_screen = obj.gzm.getUserDataForMediaFile(output_video_file_name, GazePointManager.user_data_x_coord_field_names);
             normalized_y_coord_in_screen = obj.gzm.getUserDataForMediaFile(output_video_file_name, GazePointManager.user_data_y_coord_field_names);
@@ -86,7 +86,7 @@ classdef ImageDisplacer < handle
             folder_name = separate_path{end};
             parent_folder = strjoin(separate_path(1:end-1), filesep);
             copy_project_path = [parent_folder, '\', folder_name, '_old'];
-            copyfile(project_path, copy_project_path);
+            copyfile(project_path, copy_project_path, 'f');
         end
         
         function substituteVideoForImage(project_file_name, meta_info)
