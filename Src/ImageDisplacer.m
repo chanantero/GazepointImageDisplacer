@@ -14,14 +14,14 @@ classdef ImageDisplacer < handle
         end
         
         function adaptProject(obj, project_file_name, meta_file)
-            ImageDisplacer.duplicateProject(project_file_name);
+            new_project_file_name = ImageDisplacer.duplicateProject(project_file_name);
                        
             [meta_info, status] = ImageDisplacer.getMetaInfo(meta_file);
             assert(~strcmp(status, 'ERROR'), 'ImageDisplacer:adaptProject', 'Could not extract information from meta information file')
 
-            ImageDisplacer.substituteVideoForImage(project_file_name, meta_info);
+            ImageDisplacer.substituteVideoForImage(new_project_file_name, meta_info);
             
-            obj.gzm.openProject(project_file_name);
+            obj.gzm.openProject(new_project_file_name);
             
             obj.adaptUsers(meta_info);
                         
@@ -80,13 +80,14 @@ classdef ImageDisplacer < handle
     end
     
     methods(Static)   
-        function duplicateProject(project_name)
-            [project_path, ~, ~] = fileparts(project_name);
+        function new_project_name = duplicateProject(project_name)
+            [project_path, file_name, ext] = fileparts(project_name);
             separate_path = regexp(char(project_path), '\\|/', 'split');
             folder_name = separate_path{end};
             parent_folder = strjoin(separate_path(1:end-1), filesep);
-            copy_project_path = [parent_folder, '\', folder_name, '_old'];
+            copy_project_path = [parent_folder, '\', folder_name, '_new'];
             copyfile(project_path, copy_project_path, 'f');
+            new_project_name = [copy_project_path, filesep, file_name, ext];
         end
         
         function substituteVideoForImage(project_file_name, meta_info)
