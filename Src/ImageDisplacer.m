@@ -245,7 +245,7 @@ classdef ImageDisplacer < handle
                 displacement_velocity = p.Results.displacement_velocity;
                 duration = image_width/abs(displacement_velocity);
                 displacement_time = [0, duration];
-                displacement_ratio_value = [0, 1];
+                displacement_ratio_value = [0, sign(displacement_velocity)];
             else
                 displacement_time = p.Results.displacement_time_vector;
                 displacement_ratio_value = p.Results.displacement_ratio_value_vector;             
